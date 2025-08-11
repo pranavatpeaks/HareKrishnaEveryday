@@ -10,8 +10,6 @@ load_dotenv()
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 
-yag = yagmail.SMTP(EMAIL_USER, EMAIL_PASS)
-
 # Load subscribers from file
 subscribers_file = "subscribers.json"
 if os.path.exists(subscribers_file):
