@@ -1,40 +1,57 @@
-import yagmail
-from script import mail_content
+from flask import Flask, request, render_template_string
 import json
+import os
 
-# Load subscribers from JSON
-with open("subscribers.json", "r") as f:
-    subscribers = json.load(f)
+app = Flask(__name__)
 
-if not subscribers:
-    print("No subscribers found.")
-    exit()
+SUBSCRIBERS_FILE = "subscribers.json"
 
-# Extract details from mail_content
-quote = mail_content["quotations"][0]
-chapter = mail_content["chapter_name"]
-book = mail_content["book_title"]
-
-# HTML email template
-html_content = f"""
+# HTML template
+HTML_FORM = """
+<!DOCTYPE html>
 <html>
-<body style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
-    <div style="max-width: 600px; margin: auto; background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-        <h2 style="color: #4a4a4a; text-align: center;">📖 Daily Spiritual Quote</h2>
-        <blockquote style="font-style: italic; color: #333; line-height: 1.6; border-left: 4px solid #ff9900; padding-left: 15px; margin: 20px 0;">
-            {quote}
-        </blockquote>
-        <p style="color: #666; font-size: 14px; text-align: right; margin-top: 20px;">
-            — <b>{chapter}</b><br>
-            <i>{book}</i>
-        </p>
-    </div>
+<head>
+    <title>Subscribe to Daily Quote</title>
+</head>
+<body style="font-family: Arial; text-align: center; margin-top: 50px;">
+    <h2>📖 Subscribe to Daily Spiritual Quote</h2>
+    <form method="POST">
+        <input type="email" name="email" placeholder="Enter your email" required style="padding: 10px; width: 250px;">
+        <br><br>
+        <button type="submit" style="padding: 10px 20px;">Subscribe</button>
+    </form>
+    {% if message %}
+        <p style="color: green; margin-top: 20px;">{{ message }}</p>
+    {% endif %}
 </body>
 </html>
 """
 
-# Send to each subscriber
-yag = yagmail.SMTP("thenectarbrew@gmail.com")  # registered credentials
-for email in subscribers:
-    yag.send(to=email, subject="📖 Your Daily Spiritual Quote", contents=html_content)
-    print(f"✅ Email sent to {email}")
+def load_subscribers():
+    if os.path.exists(SUBSCRIBERS_FILE):
+        with open(SUBSCRIBERS_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def save_subscribers(subscribers):
+    with open(SUBSCRIBERS_FILE, "w") as f:
+        json.dump(subscribers, f, indent=2)
+
+@app.route("/", methods=["GET", "POST"])
+def subscribe():
+    message = None
+    if request.method == "POST":
+        email = request.form.get("email").strip().lower()
+        subscribers = load_subscribers()
+
+        if email not in subscribers:
+            subscribers.append(email)
+            save_subscribers(subscribers)
+            message = f"{email} has been subscribed successfully!"
+        else:
+            message = "You are already subscribed!"
+
+    return render_template_string(HTML_FORM, message=message)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=6969)

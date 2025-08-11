@@ -8,7 +8,10 @@ from script import mail_content
 load_dotenv()
 
 EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
+if not EMAIL_USER or not EMAIL_PASS:
+    raise ValueError("❌ EMAIL_USER or EMAIL_PASS not set in environment variables.")
 
 # Load subscribers from file
 subscribers_file = "subscribers.json"
@@ -18,13 +21,13 @@ if os.path.exists(subscribers_file):
 else:
     subscribers = []
 
-print(f"Mailing list initialized. Current subscribers: {subscribers}")
+print(f"📬 Mailing list initialized. Current subscribers: {subscribers}")
 
 if not subscribers:
     print("⚠️ No subscribers found. Please ensure you have subscribers in the mailing list.")
     exit()
 
-# Prepare HTML
+# Prepare HTML content
 quote = mail_content["quotations"][0]
 chapter = mail_content["chapter_name"]
 book = mail_content["book_title"]
@@ -46,8 +49,12 @@ html_content = f"""
 </html>
 """
 
-# Send emails
-yag = yagmail.SMTP(EMAIL_USER, EMAIL_PASS)
+# Send emails without using keyring
+yag = yagmail.SMTP(user=EMAIL_USER, password=EMAIL_PASSWORD, oauth2_file=None)
+
 for email in subscribers:
-    yag.send(to=email, subject="📖 Your Daily Spiritual Quote", contents=html_content)
-    print(f"✅ Email sent to {email}")
+    try:
+        yag.send(to=email, subject="📖 Your Daily Spiritual Quote", contents=html_content)
+        print(f"✅ Email sent to {email}")
+    except Exception as e:
+        print(f"❌ Failed to send email to {email}: {e}")
