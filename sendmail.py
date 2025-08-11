@@ -1,16 +1,36 @@
+import os
+import json
 import yagmail
+from dotenv import load_dotenv
 from script import mail_content
-from web import mailing_list
 
-# Example JSON data
-data = mail_content
+# Load environment variables
+load_dotenv()
 
-# Extract details
-quote = data["quotations"][0]
-chapter = data["chapter_name"]
-book = data["book_title"]
+EMAIL_USER = os.getenv("EMAIL_USER")
+EMAIL_PASS = os.getenv("EMAIL_PASS")
 
-# HTML Email Content
+yag = yagmail.SMTP(EMAIL_USER, EMAIL_PASS)
+
+# Load subscribers from file
+subscribers_file = "subscribers.json"
+if os.path.exists(subscribers_file):
+    with open(subscribers_file, "r") as f:
+        subscribers = json.load(f)
+else:
+    subscribers = []
+
+print(f"Mailing list initialized. Current subscribers: {subscribers}")
+
+if not subscribers:
+    print("⚠️ No subscribers found. Please ensure you have subscribers in the mailing list.")
+    exit()
+
+# Prepare HTML
+quote = mail_content["quotations"][0]
+chapter = mail_content["chapter_name"]
+book = mail_content["book_title"]
+
 html_content = f"""
 <html>
 <body style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
@@ -27,17 +47,9 @@ html_content = f"""
 </body>
 </html>
 """
-mail_list = mailing_list  # Get the mailing list from web.py
-if not mail_list:
-    print("⚠️ No subscribers found. Please ensure you have subscribers in the mailing list.")
-    exit()
-print(f"Mailing list: {mail_list}")
-# Send Email
-yag = yagmail.SMTP("thenectarbrew@gmail.com")  # already registered credentials
-yag.send(
-    to= mail_list,
-    subject="📖 Your Daily Spiritual Quote",
-    contents=html_content
-)
 
-print("✅ Styled email sent!")
+# Send emails
+yag = yagmail.SMTP(EMAIL_USER, EMAIL_PASS)
+for email in subscribers:
+    yag.send(to=email, subject="📖 Your Daily Spiritual Quote", contents=html_content)
+    print(f"✅ Email sent to {email}")
