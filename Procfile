@@ -1,0 +1,1 @@
+web: python subscriber_app.py
